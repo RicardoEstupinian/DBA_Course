@@ -111,22 +111,50 @@ En cada data mart solo accede un numero limitado de usuarios, que realizan <stro
     )
     RETURNS type_return
     BEGIN
-        DECLARE @v_variable_name type_variable;
-        SET @v_variable_name = 20*5;
+        DECLARE @v_variable_name type_variable
+        SET @v_variable_name = 20*5
         RETURN @v_variable_name
     END
 
     ```
     + Sintaxis de llamada a funcion
     ```sql
-        SELECT dbo.name_function(param1,param2) FROM table_name;
+        SELECT dbo.name_function(param1,param2) FROM table_name
     ```
 
-+ **Funciones en linea**: Son aquellas funciones que regresan un conjunto de resultados correspondiente a un *SELECT* po rlo tanto el resultado es una tabla.
++ **Funciones en linea**: Son aquellas funciones que regresan un conjunto de resultados correspondiente a un *SELECT* por lo tanto el resultado es una tabla.
 
     + Sintaxis SQL Server
-    + Sintaxis de llamada a funcion
+     ```sql
+    CREATE FUNCTION name_function(
+        @p_name_parameter type_parameter
+    )
+    RETURNS table
+    BEGIN
+        RETURN ( consulta_SQL )
+    END
 
+    ```
+    + Sintaxis de llamada a funcion
+     ```sql
+        SELECT * FROM dbo.name_function(param)
+    ```
+    
++ **Funciones en linea de multiples sentencias**: Se utilizan cuando se requiere mayor logica de proceso.
+    + Sintaxis SQL Server
+     ```sql
+    CREATE FUNCTION name_function(
+        @p_name_parameter type_parameter
+    )
+    RETURNS @var
+    BEGIN
+        RETURN ( consulta_SQL )
+    END
+    ```
+    + Sintaxis de llamada a funcion
+     ```sql
+        SELECT * FROM dbo.name_function(param)
+    ```
 <hr>
 
 [Indice](#indice)
