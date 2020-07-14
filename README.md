@@ -146,14 +146,44 @@ En cada data mart solo accede un numero limitado de usuarios, que realizan <stro
     CREATE FUNCTION name_function(
         @p_name_parameter type_parameter
     )
-    RETURNS @var
+    RETURNS @v_nombre table (colum1 type_c1, column2 type_c2)
     BEGIN
-        RETURN ( consulta_SQL )
+        INSERT INTO @v_nombre
+        SELECT colum1, column2 FROM table_name
+        WHERE columx = p_name_parameter
+        RETURN
     END
     ```
     + Sintaxis de llamada a funcion
      ```sql
         SELECT * FROM dbo.name_function(param)
+    ```
+<hr>
+
+### Triggers
+<p style="text-align:justify;">
+Los triggers  activan procesos automaticos al ejecutar algunas sentencias <strong>DML( INSERT, UPDATE, DELETE )</strong>, cada trigger esta anclado a una tabla.
+</p>
+
++ **TIMING en SQL Server**
+    + **FOR**: Se activa primero el trigger y despues la sentencia DML.
+    + **AFTER**: Se ejecuta la sentencia DML y despues se ejecuta el trigger.
+
+    + **Sintaxis de Triggers en SQL Server**
+     ```sql
+    CREATE | ALTER TRIGGER trigger_name
+    ON table_name
+    [AFTER | FOR ] [INSERT | UPDATE | DELETE]
+    AS
+    BEGIN
+        DECLARE @v_variable type_variable
+
+        -- Asignacion a variable haciendo referencia a los valores insertados en el caso de un trigger INSERT
+        SELECT @v_variable = col1 FROM inserted
+
+        -- Ejemplo de UPDATE de un registro en base al trigger
+        UPDATE table_name SET colx = @v_variable WHERE ... 
+    END
     ```
 <hr>
 
