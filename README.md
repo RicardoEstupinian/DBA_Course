@@ -127,13 +127,14 @@ En cada data mart solo accede un numero limitado de usuarios, que realizan <stro
 
     + Sintaxis SQL Server
      ```sql
+     -- No se usa BEGIN END
     CREATE FUNCTION name_function(
         @p_name_parameter type_parameter
     )
     RETURNS table
-    BEGIN
+        -- Se debe de usar ALIAS para cada columna a mostrar, en caso de haber usado JOINS.
         RETURN ( consulta_SQL )
-    END
+    
 
     ```
     + Sintaxis de llamada a funcion
@@ -214,7 +215,7 @@ Los triggers  activan procesos automaticos al ejecutar algunas sentencias <stron
         SELECT @cost=SUM(UnitPrice*Quantity) FROM [Order Details] WHERE OrderID=@Order_id;
         RETURN @cost
     END
-    
+
     -- Se muestra el nombre del cliente y el monto total de la orden.
     SELECT DISTINCT c.CompanyName Cliente, dbo.fn_totalCostByOrder(od.OrderID) Monto_Total 
     FROM [Order Details] AS od JOIN Orders AS o 
@@ -224,9 +225,25 @@ Los triggers  activan procesos automaticos al ejecutar algunas sentencias <stron
     ```
 3. Crea una funcion que regrese el estado que vendio mas productos.
     ```sql
+    CREATE FUNCTION fn_maxProductsSoldByCity()
+    RETURNS table
+    RETURN (SELECT TOP 1 resultado.Estado Estado, MAX(resultado.Cantidad_Productos) Cantidad_Productos
+            FROM (
+                SELECT o.ShipCity Estado, SUM(od.Quantity) Cantidad_Productos 
+                FROM [Order details] od
+                JOIN Orders o
+                ON o.OrderID = od.OrderID
+                GROUP BY o.ShipCity
+            ) AS resultado
+            GROUP BY resultado.Estado
+            ORDER BY MAX(resultado.Cantidad_Productos) DESC)
+    
+    -- Llamada
+    SELECT * FROM dbo.fn_maxProductsSoldByCity()
     ```
 4. Crea una funcion que muestre el registro del empleado que haya sacado mas dinero por sus ordenes de venta.
     ```sql
+    
     ```
 5. Crea unafuncion que recibaun Id del cliente (Customer) y regrese todas las ordenes que ha hecho.
     ```sql
