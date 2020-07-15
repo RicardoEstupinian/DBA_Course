@@ -17,6 +17,7 @@ Documentación de conceptos y aspectos importantes recopilados del curso Adminis
     + [Esquema de Copo de Nieve](#ecn)
     + [Esquema de Constelacion](#ec)
 + [Funciones en SQL Server](#funciones-en-sql-server)
++ [Ejercicios SQL](#ejercicios-sql)
 ## Contenido
 ### Data Warehouse
 **Definicion**
@@ -185,6 +186,60 @@ Los triggers  activan procesos automaticos al ejecutar algunas sentencias <stron
         UPDATE table_name SET colx = @v_variable WHERE ... 
     END
     ```
+<hr>
+
+### Ejercicios SQL
+>Los ejercicios son en base a la BD restaurada del archivo Northwind.bak. Archivo disponible en el curso.
+
++ **Funciones**
+1. Cree una funcion que reciba el Id de un empleado (Employee) y que regrese el total de ordenes que ha generado.
+    ```sql
+    CREATE FUNCTION fn_countOrdersByEmployee(@Employee_id int)
+    RETURNS int
+    BEGIN
+        DECLARE @contador int
+        SELECT @contador=count(EmployeeID) FROM Orders WHERE @Employee_id= EmployeeID 
+        RETURN @contador
+    END
+
+    -- Llamada
+    SELECT Firstname,dbo.fn_countOrdersByEmployee(EmployeeID) FROM Employees
+    ```
+2. Crea una funcion que reciva el Id de Orden (Order) y regrese el costo total de ordenes que ha generado.
+    ```sql
+    CREATE FUNCTION dbo.fn_totalCostByOrder(@Order_id int)
+    RETURNS money
+    BEGIN
+        DECLARE @cost money
+        SELECT @cost=SUM(UnitPrice*Quantity) FROM [Order Details] WHERE OrderID=@Order_id;
+        RETURN @cost
+    END
+    
+    -- Se muestra el nombre del cliente y el monto total de la orden.
+    SELECT DISTINCT c.CompanyName Cliente, dbo.fn_totalCostByOrder(od.OrderID) Monto_Total 
+    FROM [Order Details] AS od JOIN Orders AS o 
+    ON od.OrderID = o.OrderID
+    JOIN Customers AS c
+    ON c.CustomerID = o.CustomerID
+    ```
+3. Crea una funcion que regrese el estado que vendio mas productos.
+    ```sql
+    ```
+4. Crea una funcion que muestre el registro del empleado que haya sacado mas dinero por sus ordenes de venta.
+    ```sql
+    ```
+5. Crea unafuncion que recibaun Id del cliente (Customer) y regrese todas las ordenes que ha hecho.
+    ```sql
+    ```
+6. Crea una funcion que reciba un Id empleado y regrese los registros de clientes que ha atendido.
+    ```sql
+    ```
++ **Triggers**
+1. Crea un trigger que se dispare al insertar una nueva orden y haga un Update a la tabla empleados al cambo N_Productos donde lleve el total de productos vendidos.
+    >**Nota**: Primero se debe de agregar un nuevo campo N_Productos de tipo INT en la tabla empleados.
+    ```sql
+    ```
+
 <hr>
 
 [Indice](#indice)
