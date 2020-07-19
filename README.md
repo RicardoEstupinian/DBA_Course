@@ -18,6 +18,8 @@ Documentación de conceptos y aspectos importantes recopilados del curso Adminis
     + [Esquema de Constelacion](#ec)
 + [Funciones en SQL Server](#funciones-en-sql-server)
 + [Ejercicios SQL](#ejercicios-sql)
++ [Procedimiento Almacenados](#procedimientos-almacenados)
++ [Transacciones](#transacciones)
 ## Contenido
 ### Data Warehouse
 **Definicion**
@@ -243,21 +245,151 @@ Los triggers  activan procesos automaticos al ejecutar algunas sentencias <stron
     ```
 4. Crea una funcion que muestre el registro del empleado que haya sacado mas dinero por sus ordenes de venta.
     ```sql
-    
+    CREATE FUNCTION dbo.fn_maxSales()
+        RETURNS @table_resultado table (IdEmpleado int, Primer_Nombre nvarchar(10), Monto_total money)
+    AS
+    BEGIN
+    DECLARE @max_monto money;
+
+    -- Recuperamos el monto maximo de todas la ventas
+    SELECT @max_monto=MAX(res.Monto_total)
+    FROM(
+        -- Se utiliza una funcion de linea construida en ejercicios anteriores
+        SELECT SUM(dbo.fn_totalCostByOrder(o.OrderID)) Monto_total
+        FROM Orders o
+        GROUP BY o.EmployeeID
+        ) res
+
+        -- Recuperamos el empleado que tiene el monto maximo, que pueden ser varios
+        INSERT INTO @table_resultado
+        SELECT o.EmployeeID, e.FirstName, SUM(dbo.fn_totalCostByOrder(o.OrderID)) Monto_total
+        FROM Orders o
+        JOIN Employees e ON o.EmployeeID = e.EmployeeID
+        GROUP BY o.EmployeeID, e.FirstName
+        HAVING (SUM(dbo.fn_totalCostByOrder(o.OrderID)) = @max_monto)
+        
+        RETURN
+    END
+
+    -- Llamada
+    SELECT * FROM dbo.fn_maxSales()
     ```
 5. Crea unafuncion que recibaun Id del cliente (Customer) y regrese todas las ordenes que ha hecho.
     ```sql
+    CREATE FUNCTION dbo.fn_getAllOrdersByCustomer(@p_customerId nChar(5))
+        RETURNS table
+    RETURN SELECT * 
+           FROM Orders
+           WHERE CustomerID = @p_customerId 
+    
+    -- Llamada
+    SELECT * FROM dbo.fn_getAllOrdersByCustomer('ANATR')
     ```
 6. Crea una funcion que reciba un Id empleado y regrese los registros de clientes que ha atendido.
     ```sql
+    CREATE FUNCTION fn_customersServedByEmployee(@p_employeeId int)
+        RETURNS table
+    RETURN SELECT * 
+         FROM Customers
+         WHERE CustomerID IN (SELECT CustomerID
+                              FROM Orders
+                              WHERE EmployeeID = @p_employeeId)
+    
+    --Llamada
+    SELECT * FROM dbo.fn_customersServedByEmployee(2)
     ```
 + **Triggers**
 1. Crea un trigger que se dispare al insertar una nueva orden y haga un Update a la tabla empleados al cambo N_Productos donde lleve el total de productos vendidos.
+
     >**Nota**: Primero se debe de agregar un nuevo campo N_Productos de tipo INT en la tabla empleados.
+
     ```sql
+    -- Agregamos la columna N_PRODUCTOS
+    ALTER TABLE employees ADD N_Productos int NULL
+
+    -- Construccion del Trigger
+    CREATE TRIGGER countProductsAfterInsert 
+        ON [Order Details]
+        AFTER INSERT
+    AS
+    BEGIN
+    -- Variable que almacenara el Id del empleado
+    DECLARE @v_EmployeeId int
+    DECLARE @v_OrderId int
+
+    -- Se almacena en variable el ID de la orden
+    SELECT @v_OrderId = OrderID
+    FROM INSERTED
+
+    -- Se almacena el ID del empleado en la variable creada
+    SELECT @v_EmployeeId = EmployeeID 
+    FROM Orders
+    WHERE OrderID = @v_OrderId
+
+    -- Se actualiza el campo n_productos de la tabla Employee
+    UPDATE Employees SET N_Productos = (
+                                            SELECT SUM(od.Quantity) 
+                                            FROM Orders o JOIN [Order Details] od 
+                                            ON o.OrderID = od.OrderID 
+                                            WHERE EmployeeID = @v_EmployeeId
+                                        ) 
+        WHERE EmployeeID = @v_EmployeeId
+    END
+
+    -- INSERCION DE PRUEBA
+    INSERT INTO [Order Details](OrderID,ProductID,UnitPrice,Quantity,Discount)
+    VALUEs(10258,21,5.00,10,0.2)
     ```
+    
+    >**NOTA**: El trigger se puedo haber construido solamente sumando la cantidad que esta en el campo N_Productos mas la nueva insercion, pero previamente se tenia que actualizar el campo N_Producto de cada empleado para que se reflejara la cantidad de productos vendidos. El trigger anterior no es la solucion optima pero por motivos de practica se realizo asi.
 
 <hr>
+
+### Procedimientos Almacenados
+<p style="text-align:justify;">
+Es un conjunto de instrucciones que son ejecutadas cuando el usuario lo decida, pueden aceptar parametros de entrada y pueden o no generar resultados. Dentro de cada procedimiento se pueden ejecutar otros procedimientos almacenados. Los procedimientos por lo general siempre regresan un valor estado para indicar que la operacion se ejecuto exitosamente.
+</p>
+
++ **Diferencias entre procedimientos y funciones**
+
+    + Los procedimientos son llamados cuando el usuario requiere mediante EXECUTE y las funciones son llamadas dentro de otras sentencias SQL.
+
+    + En los procedimientos se pueden restringir acciones de usuario a un nivel mas especifico a diferencia de las funciones.
+
+    + La sintaxis es diferente.
+
++ **Sintaxis para crear procedimientos**
+    ```sql
+    -- Procedimiento basico
+    CREATE PROCEDURE nombre_procedimiento
+    AS
+        --Sentencias SQL
+    GO
+
+    -- Procedimiento con parametros
+    -- Se usa OUTPUT como parametro de salida
+    CREATE PROCEDURE nombre_procedimiento @param1 data_type, @param2 data_type, @param3 data_type OUTPUT
+    AS
+    BEGIN
+        --Sentencias SQL
+    END
+    ```
++ **Ejecutar procedimiento**
+    ```sql
+    EXECUTE nombre_procedimiento
+    ```
+<hr>
+
+### Transacciones
+<p style="text-align:justify;">
+Es un conjunto de ordenes que se ejecutan formando una unidad indivisible de trabajo, lo que significa que no puede ser detenido ni dejado a medias. Si empieza, debe terminar. Si por alguna causa se produce un error, el sistema deshara las ordenes ejecutadas hasta dejar la base de datos en su estados inicial. Para que esto se cumpla todas las transacciones deben de cumplir el principio <strong>ACID</strong>.
+</p>
+
++ **Atomicidad (Atomicity)**: Asegura que la operacion se realiza en su totalidad o que no inicie.
+
++ **Consistencia (Consistency)**: Asegura que solo se inicie lo que realmente se puede finalizar.
++ **Aislamiento (Isolation)**: Asegura que una operacion no puede afectar o mutar a otras operaciones.
++ **Durabilidad (Durability)**: Asegura que una vez realizada la operacion, esta persistira aunque se presente una falla en el sistema.
 
 [Indice](#indice)
 
